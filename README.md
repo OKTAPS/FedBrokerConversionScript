@@ -10,6 +10,9 @@
 
 ## Commands to Run
 
+### help
+python3 OKTA_AppSignOnFromCSV_v1.py -h
+
 ### Check if any App Sign On Policies Exist
 python3 OKTA_AppSignOnFromCSV_v1.py --command checkPolicy
 
