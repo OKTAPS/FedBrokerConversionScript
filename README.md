@@ -16,6 +16,8 @@ python3 OKTA_AppSignOnFromCSV_v1.py -h
 ### Check if any App Sign On Policies Exist
 python3 OKTA_AppSignOnFromCSV_v1.py --command checkPolicy
 
+---above command checks if there is an existing policy for the app. If policy exists, then it logs error in the "OKTA_AppSignOnFromCSV_v1.log" file
+
 ### Add App Sign On Policy
 python3 OKTA_AppSignOnFromCSV_v1.py --command applyPolicy
 
