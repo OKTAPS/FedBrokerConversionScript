@@ -1,6 +1,6 @@
 {
-    "subDomain": "terraform-p2hub",
+    "subDomain": "SUBDOMAIN",
     "baseUrl": "oktapreview.com",
-    "userName": "praveen.atluri@okta.com",
-    "inputCsv": "input/jd_group_assignments_batch2.csv"
+    "userName": "test.uu@mailinator.com",
+    "inputCsv": "input/group_assignments_batch.csv"
 }
