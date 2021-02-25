@@ -1,3 +1,4 @@
+#!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3
 import csv
 import json
 import requests
@@ -7,6 +8,7 @@ from bs4 import BeautifulSoup
 import getpass
 import logging
 import argparse
+from collections import OrderedDict
 
 result = {}
 appList = {}
@@ -20,6 +22,8 @@ ARGP = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
 )
 ARGP.add_argument('--command', action='store', help='checkPolicy, applyPolicy, enableFedBrokerMode, disableFedBrokerMode ')
+ARGP.add_argument('--network', action='store', help='inNetwork, outOfNetwork')
+ARGP.add_argument('--mfa', action='store', help='noMfa, perSession')
 
 
 logging.basicConfig(filename='OKTA_AppSignOnFromCSV_v1.log', level=logging.DEBUG)
@@ -143,6 +147,7 @@ def readCsv(inputMasterCsv):
                 result[row["appId"]].append(row["groupId"])
             else:
                 result[row["appId"]] = [row["groupId"]]
+                result[row["networkZones"]] = [row["networkZones"]]
                 # jsonObjToProcess[]
                 appList[row["appId"]] = [row["appName"]]
 
@@ -171,7 +176,42 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId):
 
     appType = getAppType(S,adminBaseUrl,applicationId)
 
-    response=S.get(adminBaseUrl+"/admin/app/"+appType+"/instance/"+applicationId+"/settings/sso")
+    response=S.get(adminBaseUrl+"/admin/app/instance/"+applicationId+"/app-sign-on-policy-list")
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    scriptTag = soup.script.decompose()
+
+    # print(soup)
+
+    data = []
+
+    table_body = soup.find('tbody')
+
+    rows = table_body.find_all('tr', { "class" : "appSignOnRule" })
+    for row in rows:
+        cols = row.find_all('td')
+        cols = [ele.text.strip() for ele in cols]
+        # data.append([ele for ele in cols if ele]) # Get rid of empty values
+        data.append(cols)
+
+
+    rows = table_body.find_all('tr', { "class" : "policy-rule-summary" })
+    i=0
+    for row in rows:
+        cols = row.find_all('p')
+        cols = [data[i].append(re.sub(" +","",ele.text.strip())) for ele in cols]
+        i+=1
+
+
+    print(data)
+
+    # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
+    #                      for row in soup("tr")]
+
+
+    # print(table_data)
+    # print(json.dumps(OrderedDict(table_data)))
 
     tag1 = 'span class="priority-number"'
     tag = "span"
@@ -194,12 +234,14 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId):
         return True
 
 
-def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups):                       # Method to Enable Integration
+def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups,includedZoneIds, excludedZoneIds):                       # Method to Enable Integration
     body={'_xsrfToken':adminXsrfToken,
       'appInstanceId': appId,
       'name': policyName,
       '_disabled': 'on',
       'hasIncluded': True,
+      'includedZoneIdString': includedZoneIds ,
+      'excludedZoneIdString': excludedZoneIds,
     #   'as_values_013': ',00gvzjqs87MUO1xx00h7,',
       'includedGroupIdString': groups,
       '_hasIncluded': 'on',
@@ -247,6 +289,36 @@ def getAppType(S,adminBaseUrl,appId):                       # Method to Enable I
     return appGetBody['name']
 
 
+def html2json(html: str, debug: bool = False):
+    """
+   Converts html to a json str.
+   """
+    collections = {'collections': []}
+    result = collections['collections']
+    # result has the same reference of the list object
+    # inside the list
+    fields = 'size identity state name nick'.split()
+    skip_fields = 'state nick'.split()
+    bs = BeautifulSoup(html, features='html.parser')
+    for tr in bs.find_all('tr'):
+        state = deque()
+        for th_td in tr.children:
+            if hasattr(th_td, 'text'):
+                state.append(th_td.text)
+        if not state:
+            continue
+        if debug:
+            print(state, file=sys.stderr)
+        size, identity = state.popleft().strip().split()
+        size = int(size)
+        state.extendleft((size, identity))
+        dataset = {
+            field: value for (field, value) in
+            zip(fields, state)
+            if field not in skip_fields
+        }
+        result.append(dataset)
+    return json.dumps(collections, indent=4)
 
 if __name__== "__main__":
         main()
