@@ -1,5 +1,6 @@
 #!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3
 import csv
+import os
 import json
 import requests
 import sys, getopt
@@ -70,13 +71,13 @@ def main(argp=None):
     for appId,appName in appList.items():
         logging.debug(appId)
         if argp.command == "checkPolicy":
-            policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId)
+            policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
             if policyExists:
                 logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
             else:
                 logging.info('No Custom Policy exits for the App: %s ---- %s', appName , appId)
         elif argp.command == "applyPolicy":
-            policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId)
+            policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
             if policyExists:
                 logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
             else:
@@ -172,7 +173,7 @@ def loadProperties():
 
 
        
-def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId):  
+def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicationName,appSignonBackupDirectory):  
 
     appType = getAppType(S,adminBaseUrl,applicationId)
 
@@ -193,6 +194,7 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId):
         cols = row.find_all('td')
         cols = [ele.text.strip() for ele in cols]
         # data.append([ele for ele in cols if ele]) # Get rid of empty values
+        cols.append(row.get('id').replace('rule-',''))
         data.append(cols)
 
 
@@ -203,11 +205,22 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId):
         cols = [data[i].append(re.sub(" +","",ele.text.strip())) for ele in cols]
         i+=1
 
-
-    print(data)
-
+    if not os.path.exists(appSignonBackupDirectory):
+        os.makedirs(appSignonBackupDirectory)
+    fileToWrite = appSignonBackupDirectory+applicationName[0]+'-'+applicationId+'-Rules.csv'
+    with open(fileToWrite, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Priority", "RuleName", "RuleStatus","isEditable","RuleId","Groups","Network","Platforms","Action"])
+        for rule in data:
+            if rule[6] != "Anywhere":
+                ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
+                rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
+                rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+                writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
+   
     # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
     #                      for row in soup("tr")]
+
 
 
     # print(table_data)
