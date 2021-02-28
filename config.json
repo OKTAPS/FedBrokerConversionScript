@@ -2,5 +2,6 @@
     "subDomain": "SUBDOMAIN",
     "baseUrl": "oktapreview.com",
     "userName": "test.uu@mailinator.com",
-    "inputCsv": "input/group_assignments_batch.csv"
+    "inputCsv": "input/group_assignments_batch.csv",
+    "appSignonBackupDirectory": "appSignonBackup/"
 }
