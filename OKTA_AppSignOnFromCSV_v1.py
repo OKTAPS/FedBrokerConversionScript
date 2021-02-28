@@ -18,11 +18,11 @@ jsonObjToProcess = {}
 
 
 ARGP = argparse.ArgumentParser(
-    usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"]',
+    usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"]',
     description=__doc__,
     formatter_class=argparse.RawTextHelpFormatter,
 )
-ARGP.add_argument('--command', action='store', help='checkPolicy, applyPolicy, enableFedBrokerMode, disableFedBrokerMode ')
+ARGP.add_argument('--command', action='store', help='checkPolicy, backUpAndDelete, applyPolicy, enableFedBrokerMode, disableFedBrokerMode ')
 ARGP.add_argument('--network', action='store', help='inNetwork, outOfNetwork')
 ARGP.add_argument('--mfa', action='store', help='noMfa, perSession')
 
@@ -33,7 +33,7 @@ logging.basicConfig(filename='OKTA_AppSignOnFromCSV_v1.log', level=logging.DEBUG
 
 def main(argp=None):
 
-    availableCommands = ["checkPolicy", "applyPolicy", "enableFedBrokerMode", "disableFedBrokerMode"]
+    availableCommands = ["checkPolicy", "backUpAndDelete", "applyPolicy", "enableFedBrokerMode", "disableFedBrokerMode"]
     if argp is None:
         argp = ARGP.parse_args()  # pragma: no cover
 
@@ -44,7 +44,7 @@ def main(argp=None):
     if argp.command in availableCommands:
         logging.debug('executing command')
     else:
-        ARGP.exit(status=64, message='\nInvalid value for command. Please enter either "checkPolicy", "applyPolicy" or "enableFedBrokerMode"\n')
+        ARGP.exit(status=64, message='\nInvalid value for command. Please enter either "checkPolicy", "backUpAndDelete", "applyPolicy" or "enableFedBrokerMode"\n')
 
     config = loadProperties()
 
@@ -76,6 +76,16 @@ def main(argp=None):
                 logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
             else:
                 logging.info('No Custom Policy exits for the App: %s ---- %s', appName , appId)
+        elif argp.command == "backUpAndDelete":
+            policyExists = backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
+            if policyExists:
+                logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
+            else:
+                allGroupIds = ",".join(result[appId])
+                policyName = ",".join(appName)+'_Policy'
+                logging.debug(policyName)
+                print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName, allGroupIds))
+                logging.info('policy applied: %s ---- %s', appName , appId)
         elif argp.command == "applyPolicy":
             policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
             if policyExists:
@@ -216,8 +226,87 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicati
                 ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
                 rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
                 rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
-                writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
+            writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
    
+    # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
+    #                      for row in soup("tr")]
+
+
+
+    # print(table_data)
+    # print(json.dumps(OrderedDict(table_data)))
+
+    tag1 = 'span class="priority-number"'
+    tag = "span"
+
+    reg_str = "<" + tag1 + ">(.*?)</" + tag + ">"
+
+
+    match = re.findall(reg_str, response.text)
+
+
+    tag2 = '<tr class="appSignOnRule policy-rule " id="rule-">'
+
+    match2 = re.findall(tag2, response.text )
+
+    if len(match2) == 0 and len(match) == 0 :
+        return False
+    elif len(match2) == 1 and len(match) == 1:
+        return False
+    else:
+        return True
+
+def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicationName,appSignonBackupDirectory):  
+
+    print(adminXsrfToken)
+    appType = getAppType(S,adminBaseUrl,applicationId)
+
+    response=S.get(adminBaseUrl+"/admin/app/instance/"+applicationId+"/app-sign-on-policy-list")
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    scriptTag = soup.script.decompose()
+
+    # print(soup)
+
+    data = []
+
+    table_body = soup.find('tbody')
+
+    rows = table_body.find_all('tr', { "class" : "appSignOnRule" })
+    for row in rows:
+        cols = row.find_all('td')
+        cols = [ele.text.strip() for ele in cols]
+        # data.append([ele for ele in cols if ele]) # Get rid of empty values
+        cols.append(row.get('id').replace('rule-',''))
+        data.append(cols)
+
+
+    rows = table_body.find_all('tr', { "class" : "policy-rule-summary" })
+    i=0
+    for row in rows:
+        cols = row.find_all('p')
+        cols = [data[i].append(re.sub(" +","",ele.text.strip())) for ele in cols]
+        i+=1
+
+    if not os.path.exists(appSignonBackupDirectory):
+        os.makedirs(appSignonBackupDirectory)
+    fileToWrite = appSignonBackupDirectory+applicationName[0]+'-'+applicationId+'-Rules.csv'
+    with open(fileToWrite, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Priority", "RuleName", "RuleStatus","isEditable","RuleId","Groups","Network","Platforms","Action"])
+        for rule in data:
+            if rule[6] != "Anywhere":
+                ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
+                rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
+                rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+            writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
+            if rule[3] != "Not editable":
+                ruleBody={'_xsrfToken':adminXsrfToken,
+                'ruleId':rule[4]
+                    }
+                delRuleResponse=S.post(adminBaseUrl+"/admin/policy/delete", data=ruleBody)
+                print(delRuleResponse.status_code)
     # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
     #                      for row in soup("tr")]
 
