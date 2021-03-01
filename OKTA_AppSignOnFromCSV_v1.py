@@ -22,10 +22,13 @@ ARGP = argparse.ArgumentParser(
     description=__doc__,
     formatter_class=argparse.RawTextHelpFormatter,
 )
-ARGP.add_argument('--command', action='store', help='checkPolicy, backUpAndDelete, applyPolicy, enableFedBrokerMode, disableFedBrokerMode ')
-ARGP.add_argument('--network', action='store', help='inNetwork, outOfNetwork')
+ARGP.add_argument('--command', action='store', help='checkPolicy, backUpAndDelete, applyPolicy,  enableFedBrokerMode, disableFedBrokerMode ')
+ARGP.add_argument('--network', action='store', help='InZone, NotInZone')
+ARGP.add_argument('--networkZoneIds', action='store', help='enter networkzone Ids seperated by colon')
 ARGP.add_argument('--mfa', action='store', help='noMfa, perSession')
-
+ARGP.add_argument('--ruleName', action='store', help='Enter Name of the rule to be created' )
+ARGP.add_argument('--groups', action='store', help='Enter Name groupsIds seperated by colon' )
+ARGP.add_argument('--action', action='store', help='Enter the action for the appSignOnPolicy')
 
 logging.basicConfig(filename='OKTA_AppSignOnFromCSV_v1.log', level=logging.DEBUG)
 
@@ -44,7 +47,7 @@ def main(argp=None):
     if argp.command in availableCommands:
         logging.debug('executing command')
     else:
-        ARGP.exit(status=64, message='\nInvalid value for command. Please enter either "checkPolicy", "backUpAndDelete", "applyPolicy" or "enableFedBrokerMode"\n')
+        ARGP.exit(status=64, message='\nInvalid value for command. Please enter either "checkPolicy", "backUpAndDelete", "applyPolicy", or "enableFedBrokerMode"\n')
 
     config = loadProperties()
 
@@ -87,14 +90,14 @@ def main(argp=None):
                 print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName, allGroupIds))
                 logging.info('policy applied: %s ---- %s', appName , appId)
         elif argp.command == "applyPolicy":
-            policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
-            if policyExists:
-                logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
-            else:
-                allGroupIds = ",".join(result[appId])
-                policyName = ",".join(appName)+'_Policy'
-                logging.debug(policyName)
-                print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName, allGroupIds))
+            # policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
+            # if policyExists:
+            #     logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
+            # else:
+            #     allGroupIds = ",".join(result[appId])
+            #     policyName = ",".join(appName)+'_Policy'
+            #     logging.debug(policyName)
+                print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,argp.ruleName,argp.groups.replace(':',","),'','', argp.action))
                 logging.info('policy applied: %s ---- %s', appName , appId)
         elif argp.command == "enableFedBrokerMode":
             print("fedBrokerMode")
@@ -341,7 +344,7 @@ def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicatio
         return True
 
 
-def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups,includedZoneIds, excludedZoneIds):                       # Method to Enable Integration
+def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups,includedZoneIds, excludedZoneIds, action):                       # Method to Enable Integration
     body={'_xsrfToken':adminXsrfToken,
       'appInstanceId': appId,
       'name': policyName,
@@ -353,7 +356,7 @@ def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,group
       'includedGroupIdString': groups,
       '_hasIncluded': 'on',
       'location': 'ANYWHERE',
-      'action': 'ALLOW'
+      'action': action
       }
     response=S.post(adminBaseUrl+"/admin/policy/app-sign-on-rule", data=body)
     return(response.status_code)  
