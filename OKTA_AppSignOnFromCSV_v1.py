@@ -225,7 +225,10 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicati
             if rule[6] != "Anywhere":
                 ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
                 rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
-                rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+                if rule[6] == "Inzone":
+                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+                elif rule[6] == "Notinzone":
+                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "name" : "excludedZoneIdString" }).get('value').replace(',',':')
             writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
    
     # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
@@ -258,7 +261,6 @@ def checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicati
 
 def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicationName,appSignonBackupDirectory):  
 
-    print(adminXsrfToken)
     appType = getAppType(S,adminBaseUrl,applicationId)
 
     response=S.get(adminBaseUrl+"/admin/app/instance/"+applicationId+"/app-sign-on-policy-list")
@@ -299,14 +301,17 @@ def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicatio
             if rule[6] != "Anywhere":
                 ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
                 rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
-                rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+                if rule[6] == "InZone":
+                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
+                elif rule[6] == "Notinzone":
+                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.excludedZoneIdString" }).get('value').replace(',',':')
             writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
             if rule[3] != "Not editable":
                 ruleBody={'_xsrfToken':adminXsrfToken,
                 'ruleId':rule[4]
                     }
                 delRuleResponse=S.post(adminBaseUrl+"/admin/policy/delete", data=ruleBody)
-                print(delRuleResponse.status_code)
+                logging.debug("Deleted the Rule %s for application %s with status code %s",rule[1], applicationName, delRuleResponse.status_code)
     # table_data = [[cell.text.strip('\n').lstrip().rstrip() for cell in row("td")]
     #                      for row in soup("tr")]
 
