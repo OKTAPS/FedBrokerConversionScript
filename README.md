@@ -37,7 +37,7 @@ python3 OKTA_AppSignOnFromCSV_v1.py --command checkPolicy
 
 Above command checks if there is an existing app sign on policy. If policy exists, then it logs error in the "OKTA_AppSignOnFromCSV_v1.log" file
 
-### Back All Policies and Delete all the App Sign on Rules
+### Backup All Policies and Delete all the App Sign on Rules
 ```
 python3 OKTA_AppSignOnFromCSV_v1.py --command backUpAndDelete
 ```
