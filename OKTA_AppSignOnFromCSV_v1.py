@@ -18,17 +18,27 @@ jsonObjToProcess = {}
 
 
 ARGP = argparse.ArgumentParser(
-    usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"]',
+    usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] \n \
+            [--network "InZone" or "NotInZone"] \n \
+            [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] \n \
+            [--excludedNetworkZoneIds "enter out of networkzone Ids seperated by colon"] \n \
+            [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"] \n \
+            [--ruleName "Enter Name of the rule to be created"] \n \
+            [--groups "Enter Name groupsIds seperated by colon"] \n \
+            [--action "DENY,ALLOW"] \n ',
+
     description=__doc__,
     formatter_class=argparse.RawTextHelpFormatter,
 )
+
 ARGP.add_argument('--command', action='store', help='checkPolicy, backUpAndDelete, applyPolicy,  enableFedBrokerMode, disableFedBrokerMode ')
 ARGP.add_argument('--network', action='store', help='InZone, NotInZone')
-ARGP.add_argument('--networkZoneIds', action='store', help='enter networkzone Ids seperated by colon')
-ARGP.add_argument('--mfa', action='store', help='noMfa, perSession')
+ARGP.add_argument('--includedNetworkZoneIds', action='store', help='enter in networkzone Ids seperated by colon')
+ARGP.add_argument('--excludedNetworkZoneIds', action='store', help='enter out of networkzone Ids seperated by colon')
+ARGP.add_argument('--mfa', action='store', help='ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER')
 ARGP.add_argument('--ruleName', action='store', help='Enter Name of the rule to be created' )
 ARGP.add_argument('--groups', action='store', help='Enter Name groupsIds seperated by colon' )
-ARGP.add_argument('--action', action='store', help='Enter the action for the appSignOnPolicy')
+ARGP.add_argument('--action', action='store', help='DENY,ALLOW')
 
 logging.basicConfig(filename='OKTA_AppSignOnFromCSV_v1.log', level=logging.DEBUG)
 
@@ -93,11 +103,25 @@ def main(argp=None):
             # policyExists = checkForExistingPolicy(S,adminBaseUrl,adminXsrfToken,appId,appName,config['appSignonBackupDirectory'])
             # if policyExists:
             #     logging.error('Custom Policy Exists for the App: %s ---- %s', appName , appId)
-            # else:
-            #     allGroupIds = ",".join(result[appId])
-            #     policyName = ",".join(appName)+'_Policy'
             #     logging.debug(policyName)
-                print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,argp.ruleName,argp.groups.replace(':',","),'','', argp.action))
+                if argp.groups is not None:
+                    groups = argp.groups.replace(':',",")
+                else:
+                    groups = ",".join(result[appId])
+                if argp.includedNetworkZoneIds is None:
+                    includedNetworkZoneIds = ''
+                else:
+                    includedNetworkZoneIds = argp.includedNetworkZoneIds.replace(":",",")
+                if argp.excludedNetworkZoneIds is None:
+                    excludedNetworkZoneIds = ''
+                else:
+                    excludedNetworkZoneIds = argp.excludedNetworkZoneIds.replace(":",",")
+
+                if argp.mfa is not None:
+                    mfa = argp.mfa
+                else:
+                    mfa=''
+                print(Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,argp.ruleName,groups,includedNetworkZoneIds,excludedNetworkZoneIds, argp.action,mfa))
                 logging.info('policy applied: %s ---- %s', appName , appId)
         elif argp.command == "enableFedBrokerMode":
             print("fedBrokerMode")
@@ -344,20 +368,45 @@ def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicatio
         return True
 
 
-def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups,includedZoneIds, excludedZoneIds, action):                       # Method to Enable Integration
-    body={'_xsrfToken':adminXsrfToken,
-      'appInstanceId': appId,
-      'name': policyName,
-      '_disabled': 'on',
-      'hasIncluded': True,
-      'includedZoneIdString': includedZoneIds ,
-      'excludedZoneIdString': excludedZoneIds,
-    #   'as_values_013': ',00gvzjqs87MUO1xx00h7,',
-      'includedGroupIdString': groups,
-      '_hasIncluded': 'on',
-      'location': 'ANYWHERE',
-      'action': action
-      }
+def Create_App_SignOnPolicy(S,adminBaseUrl,adminXsrfToken,appId,policyName,groups,includedZoneIds, excludedZoneIds, action, mfa): 
+    print(includedZoneIds)        
+    print(excludedZoneIds)    
+    body ='' 
+    requireFactor = False
+    if mfa != '':
+        requireFactor = True
+
+    if includedZoneIds=='' and excludedZoneIds == '':
+        body={'_xsrfToken':adminXsrfToken,
+        'appInstanceId': appId,
+        'name': policyName,
+        '_disabled': 'on',
+        'hasIncluded': True,
+        'location': 'ANYWHERE',
+        'includedGroupIdString': groups,
+        '_hasIncluded': 'on',
+        'action': action,
+        'requireFactor': requireFactor,
+        'factorLifetime': mfa
+        }
+    else:      # Method to Enable Integration
+        body={'_xsrfToken':adminXsrfToken,
+        'appInstanceId': appId,
+        'name': policyName,
+        '_disabled': 'on',
+        'hasIncluded': True,
+        'location': 'ZONE',
+        'includedZoneIdString': includedZoneIds ,
+        'excludedZoneIdString': excludedZoneIds,
+        'includedGroupIdString': groups,
+        '_hasIncluded': 'on',
+        # 'location': 'ANYWHERE',
+        'action': action,
+        'requireFactor': requireFactor,
+        'factorLifetime': mfa
+        }
+
+    print(body)
     response=S.post(adminBaseUrl+"/admin/policy/app-sign-on-rule", data=body)
     return(response.status_code)  
 
