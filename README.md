@@ -12,6 +12,7 @@
 
 ## Usage
 
+```
 usage: OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] 
              [--network "InZone" or "NotInZone"] 
              [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] 
@@ -20,7 +21,8 @@ usage: OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDe
              [--ruleName "Enter Name of the rule to be created"] 
              [--groups "Enter Name groupsIds seperated by colon"] 
              [--action "DENY,ALLOW"] 
-
+             ```
+             
 ### help
 ## python3 OKTA_AppSignOnFromCSV_v1.py -h
 
