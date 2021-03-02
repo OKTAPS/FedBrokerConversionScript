@@ -16,13 +16,26 @@
 
 ```
 usage: OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] 
+             [--ruleName "Enter Name of the rule to be created"] 
+             [--groups "Enter Name groupsIds seperated by colon"] 
              [--network "InZone" or "NotInZone"] 
              [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] 
              [--excludedNetworkZoneIds "enter out of networkzone Ids seperated by colon"] 
-             [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"] 
-             [--ruleName "Enter Name of the rule to be created"] 
-             [--groups "Enter Name groupsIds seperated by colon"] 
              [--action "DENY,ALLOW"] 
+             [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --command COMMAND     checkPolicy, backUpAndDelete, applyPolicy,  enableFedBrokerMode, disableFedBrokerMode 
+  --network NETWORK     InZone, NotInZone
+  --includedNetworkZoneIds INCLUDEDNETWORKZONEIDS
+                        enter in networkzone Ids seperated by colon
+  --excludedNetworkZoneIds EXCLUDEDNETWORKZONEIDS
+                        enter out of networkzone Ids seperated by colon
+  --mfa MFA             ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER
+  --ruleName RULENAME   Enter Name of the rule to be created
+  --groups GROUPS       Enter Name groupsIds seperated by colon
+  --action ACTION       DENY,ALLOW
 ```
              
 ### help
