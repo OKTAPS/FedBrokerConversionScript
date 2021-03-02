@@ -19,13 +19,13 @@ jsonObjToProcess = {}
 
 ARGP = argparse.ArgumentParser(
     usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] \n \
+            [--ruleName "Enter Name of the rule to be created"] \n \
+            [--groups "Enter Name groupsIds seperated by colon"] \n \
             [--network "InZone" or "NotInZone"] \n \
             [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] \n \
             [--excludedNetworkZoneIds "enter out of networkzone Ids seperated by colon"] \n \
-            [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"] \n \
-            [--ruleName "Enter Name of the rule to be created"] \n \
-            [--groups "Enter Name groupsIds seperated by colon"] \n \
-            [--action "DENY,ALLOW"] \n ',
+            [--action "DENY,ALLOW"] \n \
+            [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"]',
 
     description=__doc__,
     formatter_class=argparse.RawTextHelpFormatter,
