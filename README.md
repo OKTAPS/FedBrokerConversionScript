@@ -10,6 +10,17 @@
 
 ## Commands to Run
 
+## Usage
+
+usage: OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] 
+             [--network "InZone" or "NotInZone"] 
+             [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] 
+             [--excludedNetworkZoneIds "enter out of networkzone Ids seperated by colon"] 
+             [--mfa "ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER"] 
+             [--ruleName "Enter Name of the rule to be created"] 
+             [--groups "Enter Name groupsIds seperated by colon"] 
+             [--action "DENY,ALLOW"] 
+
 ### help
 ## python3 OKTA_AppSignOnFromCSV_v1.py -h
 
@@ -28,7 +39,14 @@ This command will delete all the app sign on Rules
 
 Above command checks if there is an existing app sign on policy and adds the app sign on policy. If policy exists, then it logs error in the "OKTA_AppSignOnFromCSV_v1.log" file and will not add new app sign on policy for the app.
 
+### DENY RULE
 ## python3 OKTA_AppSignOnFromCSV_v1.py --command applyPolicy --ruleName 'Deny|Everyone Else|Anywhere' --groups '00gqvhgkhsFIKVxqt0h7:00gnqbbuoaI59rA1a0h7' --action 'DENY'
+
+### ALLOW RULE with Prompt for MFA
+
+## python3 OKTA_AppSignOnFromCSV_v1.py --command applyPolicy --ruleName 'promptforMFAWithIncludedNetworkZone' --groups '00gqvhgkhsFIKVxqt0h7:00gnqbbuoaI59rA1a0h7' --includedNetworkZoneIds 'nzox27fmdet7XNPEH0h7:nzox27d9mf0PVAZDe0h7'  --action 'ALLOW' --mfa ZERO
+
+## python3 OKTA_AppSignOnFromCSV_v1.py --command applyPolicy --ruleName 'promptforMFAWithExcludedNetworkZone' --groups '00gqvhgkhsFIKVxqt0h7:00gnqbbuoaI59rA1a0h7' --excludedNetworkZoneIds 'nzox27fmdet7XNPEH0h7:nzox27d9mf0PVAZDe0h7'  --action 'ALLOW' --mfa ZERO
 
 ### Enable Fed Broker Mode
 python3 OKTA_AppSignOnFromCSV_v1.py --command enableFedBrokerMode
