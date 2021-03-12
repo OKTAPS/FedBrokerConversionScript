@@ -21,7 +21,6 @@ ARGP = argparse.ArgumentParser(
     usage='OKTA_AppSignOnFromCSV_v1.py [-h] [--command "checkPolicy" or "backUpAndDelete" or "applyPolicy" or "enableFedBrokerMode" or "disableFedBrokerMode"] \n \
             [--ruleName "Enter Name of the rule to be created"] \n \
             [--groups "Enter Name groupsIds seperated by colon"] \n \
-            [--network "InZone" or "NotInZone"] \n \
             [--includedNetworkZoneIds "enter in networkzone Ids seperated by colon"] \n \
             [--excludedNetworkZoneIds "enter out of networkzone Ids seperated by colon"] \n \
             [--action "DENY,ALLOW"] \n \
@@ -32,7 +31,6 @@ ARGP = argparse.ArgumentParser(
 )
 
 ARGP.add_argument('--command', action='store', help='checkPolicy, backUpAndDelete, applyPolicy,  enableFedBrokerMode, disableFedBrokerMode ')
-ARGP.add_argument('--network', action='store', help='InZone, NotInZone')
 ARGP.add_argument('--includedNetworkZoneIds', action='store', help='enter in networkzone Ids seperated by colon')
 ARGP.add_argument('--excludedNetworkZoneIds', action='store', help='enter out of networkzone Ids seperated by colon')
 ARGP.add_argument('--mfa', action='store', help='ZERO,SESSION,ONE_DAY,ONE_WEEK,ONE_MONTH,SIX_MONTHS,FOREVER')
@@ -328,10 +326,10 @@ def backUpAndDeletePolicy(S,adminBaseUrl,adminXsrfToken,applicationId,applicatio
             if rule[6] != "Anywhere":
                 ruleres = S.get(adminBaseUrl+"/admin/policy/app-sign-on-rule/"+rule[4])
                 rulesoup = BeautifulSoup(ruleres.text, 'html.parser')
-                if rule[6] == "InZone":
+                if rule[6] == "Inzone":
                     rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.includedZoneIdString" }).get('value').replace(',',':')
                 elif rule[6] == "Notinzone":
-                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "id" : "appsignonrule.excludedZoneIdString" }).get('value').replace(',',':')
+                    rule[6] = rule[6].strip() + ':' + rulesoup.find('input', { "name" : "excludedZoneIdString" }).get('value').replace(',',':')
             writer.writerow([rule[0], rule[1], rule[2],rule[3],rule[4],rule[5].replace('\n',''),rule[6],rule[7].replace(',',':'),rule[8].replace('\n',':')])
             if rule[3] != "Not editable":
                 ruleBody={'_xsrfToken':adminXsrfToken,
