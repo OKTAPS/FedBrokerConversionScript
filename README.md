@@ -1,4 +1,4 @@
-# JD-FedBrokerScript
+# FedBrokerScript
 
 # Sample Config File
 ```
